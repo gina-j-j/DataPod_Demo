@@ -14,28 +14,14 @@ from sklearn.model_selection import train_test_split
 # In[ ]:
 
 
-df = pd.read_csv("DataPod_Hourly.csv")
-df
+df = pd.read_csv("DataPod_Hourly.csv", parse_dates=["DATE"])
+df = df.rename(columns={
+    "DISSOLVED OXYGEN": "DO", 
+    "CONDUCTIVITY": "COND", 
+    "TEMPERATURE": "TEMP"
+}).set_index("DATE").sort_index()
 
-
-# In[ ]:
-
-
-df = df[["DATE", "DISSOLVED OXYGEN", "ORP", "PH", "CONDUCTIVITY","TEMPERATURE"]].copy()
-
-
-# In[ ]:
-
-
-df["DATE"] = pd.to_datetime(df["DATE"])
-df.set_index("DATE", inplace=True)
-df = df.sort_index(ascending=True)
-
-
-# In[ ]:
-
-
-df.columns = ["DO", "ORP", "PH", "COND", "TEMP"]
+df = df[["DO", "ORP", "PH", "COND", "TEMP"]]
 
 
 # In[ ]:
@@ -50,18 +36,12 @@ n_past = 72
 n_future = 24  
 n_features = 5 
 
-def create_sequences(data, n_past, n_future):
-    X, y = [], []
-    for i in range(n_past, len(data) - n_future + 1):
-        X.append(data[i - n_past:i, :])
-        y.append(data[i:i + n_future, :])
-    return np.array(X), np.array(y)
+X = np.array([scaled_vals[i-n_past:i] for i in range(n_past, len(scaled_vals) - n_future + 1)])
+y = np.array([scaled_vals[i:i+n_future] for i in range(n_past, len(scaled_vals) - n_future + 1)])
 
-X, y = create_sequences(scaled_vals, n_past, n_future)
-
-split = int(0.8 * len(X))
-X_train, X_test = X[:split], X[split:]
-y_train, y_test = y[:split], y[split:]
+split_idx = int(len(X) * 0.8)
+X_train, X_test = X[:split_idx], X[split_idx:]
+y_train, y_test = y[:split_idx], y[split_idx:]
 
 
 # In[ ]:
@@ -122,7 +102,7 @@ y_pred_reshaped = y_pred_scaled.reshape(-1, n_features)
 y_test_inv = scaler.inverse_transform(y_test_reshaped).reshape(y_test.shape)
 y_pred_inv = scaler.inverse_transform(y_pred_reshaped).reshape(y_pred_scaled.shape)
 
-print("Perofrmance Metrics")
+print("Performance Metrics")
 
 for i, col_name in enumerate(df.columns):
     actual = y_test_inv[:, :, i].flatten()
