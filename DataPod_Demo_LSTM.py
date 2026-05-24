@@ -22,7 +22,7 @@ df = df.rename(columns={
 }).set_index("DATE").sort_index()
 
 df = df[["DO", "ORP", "PH", "COND", "TEMP"]]
-
+print("Data shape:", df.shape)
 
 # In[ ]:
 
@@ -104,15 +104,14 @@ y_pred_inv = scaler.inverse_transform(y_pred_reshaped).reshape(y_pred_scaled.sha
 
 print("Performance Metrics")
 
-for i, col_name in enumerate(df.columns):
+or i, col_name in enumerate(df.columns):
     actual = y_test_inv[:, :, i].flatten()
     predicted = y_pred_inv[:, :, i].flatten()
     
     mae = mean_absolute_error(actual, predicted)
     rmse = np.sqrt(mean_squared_error(actual, predicted))
     
-    print(f"{col_name:15} | MAE: {mae:.4f} | RMSE: {rmse:.4f}")
-
+    print(f"Variable: {col_name} MAE: {round(mae, 4)}, RMSE: {round(rmse, 4)}")
 
 # In[ ]:
 
