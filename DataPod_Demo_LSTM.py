@@ -100,7 +100,7 @@ forecast_df = pd.DataFrame(forecast, columns=df.columns)
 forecast_df.index = pd.date_range(start=df.index[-1] + pd.Timedelta(hours=1), 
                                   periods=24, freq='H')
 
-print("--- 24 Hour Water Quality Forecast ---")
+print("24 Hour Forecast")
 print(forecast_df.head())
 
 
