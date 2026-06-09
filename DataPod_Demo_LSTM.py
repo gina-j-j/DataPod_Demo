@@ -142,7 +142,7 @@ def plot_indicator(variable_name, sequence_idx):
 
 # In[ ]:
 
-
+# input any of the variables to the function
 plot_indicator("TEMP", 1)
 
 
