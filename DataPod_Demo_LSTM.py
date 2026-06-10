@@ -86,34 +86,106 @@ print(forecast_df.head())
 
 # ## TESTING
 
-# In[ ]:
+# In[26]:
 
 
-import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-y_pred_scaled = model.predict(X_test)
+metrics = []
 
-
-y_test_reshaped = y_test.reshape(-1, n_features)
-y_pred_reshaped = y_pred_scaled.reshape(-1, n_features)
-
-y_test_inv = scaler.inverse_transform(y_test_reshaped).reshape(y_test.shape)
-y_pred_inv = scaler.inverse_transform(y_pred_reshaped).reshape(y_pred_scaled.shape)
-
-print("Performance Metrics")
-
-or i, col_name in enumerate(df.columns):
+for i, col_name in enumerate(df.columns):
     actual = y_test_inv[:, :, i].flatten()
     predicted = y_pred_inv[:, :, i].flatten()
     
     mae = mean_absolute_error(actual, predicted)
     rmse = np.sqrt(mean_squared_error(actual, predicted))
     
-    print(f"Variable: {col_name} MAE: {round(mae, 4)}, RMSE: {round(rmse, 4)}")
+    metrics.append({
+        "Variable": col_name,
+        "MAE": round(mae, 4),
+        "RMSE": round(rmse, 4)
+    })
 
-# In[ ]:
+metrics_df = pd.DataFrame(metrics_data)
+metrics_df.set_index("Variable", inplace=True)
+display(metrics_df)
+
+
+# In[18]:
+
+
+y_pred_24h_lstm = y_pred_inv[:, 23, :]
+
+results = pd.DataFrame(y_pred_24h_lstm, columns=df.columns)
+
+def classify_hab_risk(row):
+    HAB_risk_score = 0
+    if row['TEMP'] > 77.0:
+        HAB_risk_score += 40   
+    if row['PH'] > 8.5:
+        HAB_risk_score += 30  
+    if row['DO'] < 4.0:
+        HAB_risk_score += 30
+    return HAB_risk_score
+
+results['HAB_Risk_score'] = results.apply(classify_hab_risk, axis=1)
+
+def assign_HAB_level(HAB_risk_score):
+    if HAB_risk_score >= 70:
+        return "HIGH"
+    elif HAB_risk_score >= 40:
+        return "MEDIUM"
+    else:
+        return "LOW"
+
+
+# In[22]:
+
+
+def classify_fish_risk(row):
+    fish_risk_score = 0
+    if row['DO'] < 3.0:      
+        fish_risk_score += 50
+    elif row['DO'] < 5.0:    
+        fish_risk_score += 25
+     
+    if row['TEMP'] > 80.0:    
+        fish_risk_score += 30
+    elif row['TEMP'] > 75.0:
+        fish_risk_score += 15
+        
+    if row['PH'] > 9.0 or row['PH'] < 6.0:
+        fish_risk_score += 20
+        
+    return fish_risk_score
+
+results['fish_risk_score'] = results.apply(classify_fish_risk, axis=1)
+
+def assign_fish_level(fish_risk_score):
+    if fish_risk_score >= 70:
+        return "CRITICAL"
+    elif fish_risk_score >= 40:
+        return "MODERATE"
+    else:
+        return "SAFE"
+
+
+# In[23]:
+
+
+results['HAB_Warning'] = results['HAB_Risk_score'].apply(assign_HAB_level)
+results['Fish_Status'] = results['fish_risk_score'].apply(assign_fish_level)
+
+results['HAB_Risk_%'] = results['HAB_Risk_score'].astype(str) + '%'
+results['fish_risk_%'] = results['fish_risk_score'].astype(str) + '%'
+
+cols_to_display = ["DO", "PH", "TEMP", "HAB_Risk_%", "HAB_Warning", "fish_risk_%", "Fish_Status"]
+display(results[cols_to_display].head(15))
+
+
+# In[24]:
 
 
 def plot_indicator(variable_name, sequence_idx):
@@ -127,7 +199,7 @@ def plot_indicator(variable_name, sequence_idx):
     plt.figure(figsize=(10, 5))
     plt.style.use('dark_background')
     plt.plot(actual_values, label='Actual', marker='o', color='gray', alpha=0.7)
-    plt.plot(predicted_values, label='Forecasted', marker='o', linestyle='--', color='cornflowerblue')
+    plt.plot(predicted_values, label='Forecasted', marker='o', color='cornflowerblue')
     
     max_val = max(np.max(actual_values), np.max(predicted_values))
     plt.ylim(0, max_val * 1.15)
@@ -140,9 +212,9 @@ def plot_indicator(variable_name, sequence_idx):
     plt.show()
 
 
-# In[ ]:
+# In[25]:
 
-# input any of the variables to the function
+# input any of the variables here
 plot_indicator("TEMP", 1)
 
 
